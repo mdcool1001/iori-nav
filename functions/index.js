@@ -35,12 +35,20 @@ export async function onRequest(context) {
   const isHomePage = url.pathname === '/' && !url.search;
   const homeCacheKey = isAuthenticated ? `home_html_private_${HOME_CACHE_VERSION}` : `home_html_public_${HOME_CACHE_VERSION}`;
   const cookies = request.headers.get('Cookie') || '';
-  const hasStaleCookie = cookies.includes('iori_cache_stale=1');
+  const hasLegacyStaleCookie = cookies.includes('iori_cache_stale=1');
+  const hasPublicStaleCookie = hasLegacyStaleCookie || cookies.includes('iori_cache_public_stale=1');
+  const hasPrivateStaleCookie = hasLegacyStaleCookie || cookies.includes('iori_cache_private_stale=1');
   let shouldClearCookie = false;
 
   if (isHomePage) {
-    if (isAuthenticated && hasStaleCookie) {
-      await clearHomeCache(env);
+    if (isAuthenticated && (hasPublicStaleCookie || hasPrivateStaleCookie)) {
+      if (hasPublicStaleCookie && hasPrivateStaleCookie) {
+        await clearHomeCache(env, 'all');
+      } else if (hasPublicStaleCookie) {
+        await clearHomeCache(env, 'public');
+      } else {
+        await clearHomeCache(env, 'private');
+      }
       shouldClearCookie = true;
     } else {
       try {
@@ -128,26 +136,12 @@ export async function onRequest(context) {
 
   // === 6. 确定目标分类 ===
   let requestedCatalogName = (url.searchParams.get('catalog') || '').trim();
-  const explicitAll = requestedCatalogName.toLowerCase() === 'all';
 
-  if (!requestedCatalogName && !explicitAll) {
-    let cookieCatId = null;
-    let isCookieAll = false;
-    if (S.home_remember_last_category) {
-      const match = cookies.match(/iori_last_category=(all|\d+)/);
-      if (match) {
-        if (match[1] === 'all') isCookieAll = true;
-        else cookieCatId = parseInt(match[1]);
-      }
-    }
-    if (isCookieAll) {
-      requestedCatalogName = 'all';
-    } else if (cookieCatId && categoryMap.has(cookieCatId)) {
-      requestedCatalogName = categoryMap.get(cookieCatId).catelog;
-    } else {
-      const defaultCat = (S.home_default_category || '').trim();
-      if (defaultCat && categoryIdMap.has(defaultCat)) requestedCatalogName = defaultCat;
-    }
+  // 共享首页缓存仅基于稳定的默认分类渲染，避免用户的 iori_last_category
+  // 影响公共 KV HTML。记住上次分类的恢复逻辑仅在前端执行。
+  if (!requestedCatalogName) {
+    const defaultCat = (S.home_default_category || '').trim();
+    if (defaultCat && categoryIdMap.has(defaultCat)) requestedCatalogName = defaultCat;
   }
 
   let targetCategoryIds = [];
@@ -471,6 +465,8 @@ export async function onRequest(context) {
 
   if (shouldClearCookie) {
     response.headers.append('Set-Cookie', 'iori_cache_stale=; Path=/; Max-Age=0; SameSite=Lax');
+    response.headers.append('Set-Cookie', 'iori_cache_public_stale=; Path=/; Max-Age=0; SameSite=Lax');
+    response.headers.append('Set-Cookie', 'iori_cache_private_stale=; Path=/; Max-Age=0; SameSite=Lax');
   }
 
   if (isHomePage) {

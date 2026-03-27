@@ -40,14 +40,19 @@ export function jsonResponse(data, status = 200) {
   });
 }
 
-export async function clearHomeCache(env) {
+export async function clearHomeCache(env, scope = 'all') {
   try {
-    await Promise.all([
-      env.NAV_AUTH.delete('home_html_public'),
-      env.NAV_AUTH.delete('home_html_private'),
-      env.NAV_AUTH.delete(`home_html_public_${HOME_CACHE_VERSION}`),
-      env.NAV_AUTH.delete(`home_html_private_${HOME_CACHE_VERSION}`)
-    ]);
+    const keys = [];
+
+    if (scope === 'all' || scope === 'public') {
+      keys.push('home_html_public', `home_html_public_${HOME_CACHE_VERSION}`);
+    }
+
+    if (scope === 'all' || scope === 'private') {
+      keys.push('home_html_private', `home_html_private_${HOME_CACHE_VERSION}`);
+    }
+
+    await Promise.all(keys.map(key => env.NAV_AUTH.delete(key)));
   } catch (e) {
     console.error('Failed to clear home cache:', e);
   }
