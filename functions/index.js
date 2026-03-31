@@ -82,12 +82,12 @@ export async function onRequest(context) {
 
   // === 2. 并行执行数据库查询 + 模板获取 ===
   const categoryQuery = isAuthenticated
-    ? 'SELECT * FROM category ORDER BY sort_order ASC, id ASC'
-    : 'SELECT * FROM category WHERE is_private = 0 ORDER BY sort_order ASC, id ASC';
+    ? 'SELECT id, catelog, sort_order, parent_id, is_private FROM category ORDER BY sort_order ASC, id ASC'
+    : 'SELECT id, catelog, sort_order, parent_id FROM category WHERE is_private = 0 ORDER BY sort_order ASC, id ASC';
 
   const settingsKeys = getSettingsKeys();
   const settingsPlaceholders = settingsKeys.map(() => '?').join(',');
-  const sitesQuery = `SELECT id, name, url, logo, desc, catelog_id, catelog_name, sort_order, is_private, create_time, update_time
+  const sitesQuery = `SELECT id, name, url, logo, desc, catelog_id, catelog_name, sort_order
                       FROM sites WHERE (is_private = 0 OR ? = 1) ORDER BY sort_order ASC, create_time DESC`;
 
   // Settings 缓存：优先从 KV 读取，减少数据库查询
