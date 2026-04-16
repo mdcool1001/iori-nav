@@ -24,6 +24,17 @@ document.addEventListener('DOMContentLoaded', function () {
   // 为初始 SSR 渲染的卡片设置动画延迟（已从服务端移至前端）
   const initialCards = document.querySelectorAll('.site-card.card-anim-enter');
   const sitesGrid = document.getElementById('sitesGrid');
+
+  // 毛玻璃开关在整个页面生命周期内不变：IORI_LAYOUT_CONFIG 为主，CSS 变量做回退。
+  // 只在启动时读一次，避免 renderSites 每次切分类都触发 getComputedStyle
+  const isFrostedEnabled = (() => {
+    const config = window.IORI_LAYOUT_CONFIG || {};
+    if (config.enableFrostedGlass !== undefined) return config.enableFrostedGlass;
+    const frostedBlurVal = getComputedStyle(document.documentElement)
+      .getPropertyValue('--frosted-glass-blur').trim();
+    return frostedBlurVal !== '';
+  })();
+
   initialCards.forEach((card, index) => {
     const delay = Math.min(index, 12) * 20;
     if (delay > 0) card.style.animationDelay = `${delay}ms`;
@@ -641,13 +652,6 @@ document.addEventListener('DOMContentLoaded', function () {
     const hideLinks = config.hideLinks === true;
     const hideCategory = config.hideCategory === true;
     const cardStyle = config.cardStyle || 'style1';
-
-    // 优先从配置获取毛玻璃开关状态，CSS 变量作为回退
-    const computedStyle = getComputedStyle(document.documentElement);
-    const frostedBlurVal = computedStyle.getPropertyValue('--frosted-glass-blur').trim();
-    const isFrostedEnabled = config.enableFrostedGlass !== undefined
-      ? config.enableFrostedGlass
-      : (frostedBlurVal !== '');
 
     sitesGrid.innerHTML = '';
 
