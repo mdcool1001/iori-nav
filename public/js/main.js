@@ -666,7 +666,7 @@ document.addEventListener('DOMContentLoaded', function () {
       const isAboveFold = index < 8;
       const imgLoadingAttrs = isAboveFold ? 'fetchpriority="high" decoding="async"' : 'loading="lazy" decoding="async"';
       const logoHtml = site.logo
-        ? `<img src="${escapeHTML(site.logo)}" alt="${safeName}" class="w-10 h-10 rounded-lg object-cover bg-gray-100 dark:bg-gray-700" ${imgLoadingAttrs}>`
+        ? `<img src="${escapeHTML(site.logo)}" alt="${safeName}" width="40" height="40" class="w-10 h-10 rounded-lg object-cover bg-gray-100 dark:bg-gray-700" ${imgLoadingAttrs}>`
         : `<div class="w-10 h-10 rounded-lg bg-primary-600 flex items-center justify-center text-white font-semibold text-lg shadow-inner">${cardInitial}</div>`;
 
       const descHtml = hideDesc ? '' : `<p class="mt-2 text-sm text-gray-600 dark:text-gray-400 leading-relaxed line-clamp-2" title="${safeDesc}">${safeDesc}</p>`;
